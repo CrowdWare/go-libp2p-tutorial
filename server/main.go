@@ -2,9 +2,9 @@ package main
 
 import (
 	"bufio"
-	"context"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/signal"
 	"strings"
@@ -13,7 +13,6 @@ import (
 	"github.com/libp2p/go-libp2p"
 	"github.com/libp2p/go-libp2p/core/network"
 	peerstore "github.com/libp2p/go-libp2p/core/peer"
-	multiaddr "github.com/multiformats/go-multiaddr"
 )
 
 func handleStream(stream network.Stream) {
@@ -34,8 +33,8 @@ func handleStream(stream network.Stream) {
 const myProtocol = "/myprotocol/1.0.0"
 
 func main() {
-	// start a libp2p node that listens on a random local TCP port,
-	// but without running the built-in ping protocol
+	log.Println("Server started")
+
 	node, err := libp2p.New(
 		libp2p.ListenAddrStrings("/ip4/0.0.0.0/tcp/0"),
 		libp2p.Ping(false),
@@ -58,42 +57,11 @@ func main() {
 	}
 	fmt.Println("libp2p node address:", addrs[0])
 
-	// if a remote peer has been passed on the command line, connect to it
-	if len(os.Args) > 1 {
-		addr, err := multiaddr.NewMultiaddr(os.Args[1])
-		if err != nil {
-			panic(err)
-		}
-		peer, err := peerstore.AddrInfoFromP2pAddr(addr)
-		if err != nil {
-			panic(err)
-		}
-		if err := node.Connect(context.Background(), *peer); err != nil {
-			panic(err)
-		}
-
-		// Send a string message to the remote peer
-		stream, err := node.NewStream(context.Background(), peer.ID, myProtocol)
-		if err != nil {
-			panic(err)
-		}
-		writer := bufio.NewWriter(stream)
-		_, err = writer.WriteString("Hello from sender!\n")
-		if err != nil {
-			panic(err)
-		}
-		err = writer.Flush()
-		if err != nil {
-			panic(err)
-		}
-		stream.Close()
-	} else {
-		// wait for a SIGINT or SIGTERM signal
-		ch := make(chan os.Signal, 1)
-		signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
-		<-ch
-		fmt.Println("Received signal, shutting down...")
-	}
+	// wait for a SIGINT or SIGTERM signal
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
+	<-ch
+	fmt.Println("Received signal, shutting down...")
 
 	// shut the node down
 	if err := node.Close(); err != nil {

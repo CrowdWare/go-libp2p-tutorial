@@ -1,6 +1,6 @@
-module github.com/Artanidos/go-libp2p-tutorial
+module client
 
-go 1.19
+go 1.20
 
 require (
 	github.com/libp2p/go-libp2p v0.27.5
